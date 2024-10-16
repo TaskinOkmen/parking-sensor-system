@@ -1,41 +1,33 @@
-# Parking-Sensor-STM32
+# parking-sensor-system
 
 ## Overview
-This project is a parking sensor system built using an **STM32F446RE** microcontroller, an **HC-SR04** ultrasonic distance sensor, an **LCD1602A** display with its **I2C converter module**, a buzzer, and three LEDs (red, yellow, green) to indicate distance levels. The system measures the distance to an obstacle and displays the value on the LCD screen in centimeters. Additionally, it provides visual and auditory feedback based on the proximity of the obstacle.
+This project is a parking sensor system built using an **STM32F446RE** microcontroller, an **HC-SR04** ultrasonic distance sensor, an **LCD1602A** display with its **PCF8574 I2C expander module**, a buzzer, and LEDs to indicate distance levels. The system measures the distance to an obstacle and displays the value on the LCD screen in centimeters. Additionally, it provides visual and auditory feedback based on the proximity of the obstacle.
+
+ - Configured timers on input capture mode to measure pulses of HC-SR04 distance sensor.
+
+ - Interfaced LCD1602A via custom wrote driver along with PCF8574 I2C expander.
+
+ - Whole system relies on interrupts exhibiting smooth transitions between tasks.
 
 ## Components
 - **STM32F446RE**
+
 - **HC-SR04 Ultrasonic Sensor**
-- **LCD1602A with I2C Module**: Displays the distance measured by the HC-SR04.
-- **Buzzer**: Provides auditory feedback when an obstacle is detected within a critical distance.
-- **LEDs**: Three different colored LEDs (red, yellow, green) indicate the distance level:
 
-- **Breadboard**: Used to connect and organize the components.
+- **LCD1602A-I2C**: Displays the distance measured by the HC-SR04.
 
-## Functionality
-1. **Distance Measurement**: 
-   - The HC-SR04 sensor measures the distance to an obstacle by sending an ultrasonic pulse and timing how long it takes to receive the echo. 
-   - The distance is calculated by using the speed of sound and the time difference between the transmitted and received pulses.
-   
-2. **Timer Configuration**:
-   - **TMR3** on the STM32F446RE is configured in **input capture mode** to accurately measure the time intervals for distance calculation.
-   - On the rising edge of the pulse, the timestamp is recorded, and the timer is reconfigured to capture the falling edge. The difference between the two timestamps gives the time interval, which is then used to calculate the distance.
+- **Buzzer, LEDs and Breadboard**: 
 
-3. **Distance Display**:
-   - The calculated distance is displayed in centimeters on the LCD1602A display. In order to interface LCD1602A, its **I2C serial communication module** is used along with its driver.
+## Implementation
 
-4. **LED and Buzzer Indication**:
-   - The LEDs and the buzzer are used to indicate the distance level.
+**Distance Measurement and Timer Configration**: 
 
-## How It Works
-- The system continuously triggers the HC-SR04 with 250ms time intervals to measure the distance.
-- The STM32F446RE uses **interrupts** to handle the input capture from the HC-SR04 sensor, ensuring that the main program can run **smoothly** without being blocked by sensor reading operations.
+- STM32F4 triggers HC-SR04 with 250ms time intervals.
+
+- In order to measure distance, echo pin of HC-SR04 is read. Timer on CHANNEL_1 configured on input capture mode, starts with HC-SR04's call, interrupts 2 times first on rising edge, second on falling edge and records time stamps. When first rising edge signal is captured, polarity of input capture timer is reverted to capture falling edge. The difference between the two timestamps gives the time interval, which is then used to calculate the distance.
+
 - The measured distance is processed and displayed on the LCD, and the LEDs and buzzer provide immediate feedback based on the proximity to an obstacle.
 
-## Key Features
-- **Accurate Distance Measurement**: Using timer-based input capture, the system measures distances with high precision.
-- **Non-blocking Operation**: The use of interrupts ensures that the main program can continue executing other tasks while distance measurements are being processed.
-- **Real-time Feedback**: The system provides real-time visual and auditory feedback based on the measured distance.
 
 ## Code Snippet
 ```c
@@ -52,20 +44,38 @@ void handleTMR4Interrupt(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void handle_HCSR04Interrupt() {
-    HCSR04_ReadInput();
-    enum DistanceLevel level = getDistanceLevel(measuredDistance);
+void captureTimeOnRiseEdge(TIM_HandleTypeDef *htim) {
+	inputCaptureRiseEdgeTime = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
 
-    char buffer[16];
-    sprintf(buffer, "Dist: %dcm", measuredDistance);
-    HD44780_Clear();
-    HD44780_SetCursor(0, 0);
-    HD44780_PrintStr(buffer);
+	inputCaptureState = ON_FALLING_EDGE;
+	__HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
+}
 
-    toggleLEDs(level);
-    toggleBuzzer(level);
+void handle_HCSR04Interrupt()
+{
+	HCSR04_ReadInput();
+
+	enum DistanceLevel level = getDistanceLevel(measuredDistance);
+
+
+	// display distance value on LCD
+	char buffer[16];
+	sprintf(buffer, "Dist: %dcm", measuredDistance);
+   LCD_ClearDisplay(&lcd);
+   LCD_SetBacklight(&lcd, 1);
+   LCD_WriteString(&lcd, buffer);
+
+
+	// toggle LEDs based on distance level
+	toggleLEDs(level);
+	toggleBuzzer(level);
 }
 ```
 
-## Conclusion
-This parking sensor project is a practical application of the STM32 microcontroller, demonstrating real-time distance measurement and feedback using an ultrasonic sensor, LEDs, and a buzzer. The use of input capture interrupts ensures efficient processing, allowing for smooth operation and accurate distance detection.
+## Final Project
+Shown on left HC-SR04 sensor seen, and on far right lcd displaying measured distance value of 14cm.
+
+![Parking Sensor System](Github/Image/finalproduct.jpg)
+
+## Reference
+ - [LCD1602A-I2C Driver Library](https://github.com/TaskinOkmen/lcd1602a-i2c-driver)
