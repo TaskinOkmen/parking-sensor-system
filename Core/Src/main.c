@@ -23,7 +23,7 @@
 /* USER CODE BEGIN Includes */
 
 #include <stdio.h>
-#include "liquidcrystal_i2c.h"
+#include "lcd1602a.h"
 
 /* USER CODE END Includes */
 
@@ -50,6 +50,8 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+LCD1602A lcd;
 
 enum DistanceLevel {LOW = 0, MID, HIGH};
 
@@ -216,9 +218,9 @@ void handle_HCSR04Interrupt() {
 	// display distance value on LCD
 	char buffer[16];
 	sprintf(buffer, "Dist: %dcm", measuredDistance);
-    HD44780_Clear();
-    HD44780_SetCursor(0, 0);
-	HD44780_PrintStr(buffer);
+  LCD_ClearDisplay(&lcd);
+  LCD_SetBacklight(&lcd, 1);
+  LCD_WriteString(&lcd, buffer);
 
 
 	// toggle LEDs based on distance level
@@ -262,12 +264,12 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  HD44780_Init(2);
+  LCD_Init(&lcd, &hi2c1);
   HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
 
-  HD44780_Clear();
-  HD44780_NoBacklight();
-  HD44780_SetCursor(0,0);
+  LCD_ClearDisplay(&lcd);
+  LCD_SetBacklight(&lcd, 1);
+  LCD_SetCursor(&lcd, 0, 0);
 
   /* USER CODE END 2 */
 
