@@ -50,32 +50,13 @@ void captureTimeOnRiseEdge(TIM_HandleTypeDef *htim) {
 	inputCaptureState = ON_FALLING_EDGE;
 	__HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
 }
-
-void handle_HCSR04Interrupt()
-{
-	HCSR04_ReadInput();
-
-	enum DistanceLevel level = getDistanceLevel(measuredDistance);
-
-
-	// display distance value on LCD
-	char buffer[16];
-	sprintf(buffer, "Dist: %dcm", measuredDistance);
-   LCD_ClearDisplay(&lcd);
-   LCD_SetBacklight(&lcd, 1);
-   LCD_WriteString(&lcd, buffer);
-
-
-	// toggle LEDs based on distance level
-	toggleLEDs(level);
-	toggleBuzzer(level);
-}
 ```
 
 ## Final Project
 Shown on left HC-SR04 sensor seen, and on far right lcd displaying measured distance value of 14cm.
 
-![Parking Sensor System](Github/Image/finalproduct.jpg)
+
+<img src="Github/Image/finalproduct.jpg" alt="Description" width="500" height="400">
 
 ## Reference
  - [LCD1602A-I2C Driver Library](https://github.com/TaskinOkmen/lcd1602a-i2c-driver)
